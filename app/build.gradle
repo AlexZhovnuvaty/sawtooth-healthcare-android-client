@@ -68,6 +68,7 @@ protobuf {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'me.dm7.barcodescanner:zxing:1.9.8'
     implementation 'org.hyperledger.sawtooth:sawtooth-sdk-signing:v0.1.2'
     implementation 'org.hyperledger.sawtooth:sawtooth-sdk-protos:v0.1.2'
     implementation 'androidx.appcompat:appcompat:1.0.2'

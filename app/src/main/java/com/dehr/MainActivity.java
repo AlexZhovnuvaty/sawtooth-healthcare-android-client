@@ -1,11 +1,12 @@
 package com.dehr;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.dehr.protobuf.Payload;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
+//import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -13,22 +14,21 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.annotation.NonNull;
+//import androidx.annotation.NonNull;
 import androidx.multidex.MultiDex;
 
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
-import android.view.MenuItem;
+//import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,39 +48,38 @@ import sawtooth.sdk.signing.Secp256k1PrivateKey;
 import android.util.Base64;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView mTextMessage;
+//    private TextView mTextMessage;
     private TextView  mTextViewResult;
 
     private TextInputEditText mEditTextURL;
-    private Button mButtonSetURL;
-    private Button mButtonGetItems;
-    private Button mButtonAddLabTest;
 
     public static final String DEHR_PREFS_NAME = "dEHRPrefsFile";
     public static final String PARAM_NAME_URL = "RestApiURL";
     public static final String DEHR_PRIVATE_KEY = "private_key";
     public static final String DEHR_PUBLIC_KEY = "public_key";
     public static final String DEHR_REST_API_DEFAULT = "http://localhost:8040";
+    public static final int MY_CAMERA_REQUEST_CODE = 6515;
+    public static final String QR_CODE_ENTERED_VALUE = "QR_CODE_ENTERED_VALUE";
 
-    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
-            = new BottomNavigationView.OnNavigationItemSelectedListener() {
-
-        @Override
-        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-            switch (item.getItemId()) {
-                case R.id.navigation_home:
-                    mTextMessage.setText(R.string.title_home);
-                    return true;
-                case R.id.navigation_dashboard:
-                    mTextMessage.setText(R.string.title_dashboard);
-                    return true;
-                case R.id.navigation_notifications:
-                    mTextMessage.setText(R.string.title_notifications);
-                    return true;
-            }
-            return false;
-        }
-    };
+//    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
+//            = new BottomNavigationView.OnNavigationItemSelectedListener() {
+//
+//        @Override
+//        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+//            switch (item.getItemId()) {
+//                case R.id.navigation_home:
+//                    mTextMessage.setText(R.string.title_home);
+//                    return true;
+//                case R.id.navigation_dashboard:
+//                    mTextMessage.setText(R.string.title_dashboard);
+//                    return true;
+//                case R.id.navigation_notifications:
+//                    mTextMessage.setText(R.string.title_notifications);
+//                    return true;
+//            }
+//            return false;
+//        }
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,13 +87,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         init();
 //        BottomNavigationView navView = findViewById(R.id.nav_view);
-        mTextMessage = findViewById(R.id.message);
+//        mTextMessage = findViewById(R.id.message);
         mTextViewResult = findViewById(R.id.text_view_result);
         mTextViewResult.setMovementMethod(new ScrollingMovementMethod());
-        mButtonSetURL = findViewById(R.id.btn_set_rest_api);
-        mButtonGetItems = findViewById(R.id.btn_get_items);
-        mButtonAddLabTest = findViewById(R.id.btn_add_lab_test);
+        Button mButtonSetURL = findViewById(R.id.btn_set_rest_api);
+        Button mButtonGetItems = findViewById(R.id.btn_get_items);
+        Button mButtonAddPulse = findViewById(R.id.btn_add_pulse);
+//        Button mButtonScanQRCode = findViewById(R.id.btn_scan_qr_code);
         mEditTextURL = findViewById(R.id.edit_rest_api_url);
+        Button mButtonScanQRCode = findViewById(R.id.btn_scan_qr_code);
         //Check button states
         SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
         String restoredText = prefs.getString(PARAM_NAME_URL, DEHR_REST_API_DEFAULT);
@@ -129,9 +130,11 @@ public class MainActivity extends AppCompatActivity {
                 client.newCall(request).enqueue(new Callback() {
 
                     @Override
-                    public void onFailure(Call call, IOException e) {
-                        e.printStackTrace();
-                        final String myError = e.getMessage();
+                    public void onFailure(@Nullable Call call, @Nullable IOException e) {
+                        if (e != null) {
+                            e.printStackTrace();
+                        }
+                        final String myError = (e != null)?e.getMessage():"Null value";
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -142,13 +145,14 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onResponse(Call call, final Response response) throws IOException {
-//                        if (response.isSuccessful()) {
+                    public void onResponse(@Nullable Call call, @Nullable final Response response) throws IOException {
+                        StringBuilder sb = new StringBuilder();
+                        if(response != null && response.body() != null){
                             final String myResponse = response.body().string();
-                            Map<String,Pulse> pulseList =new HashMap<>();
+                            Map<String, Pulse> pulseList = new HashMap<>();
                             JsonObject jsonObject = new JsonParser().parse(myResponse).getAsJsonObject();
                             JsonArray jsonPulseList = jsonObject.getAsJsonArray("data");
-                            for(JsonElement el: jsonPulseList){
+                            for (JsonElement el : jsonPulseList) {
                                 String address = el.getAsJsonObject().get("address").getAsString();
                                 String data = el.getAsJsonObject().get("data").getAsString();
                                 byte[] decodedBytes = Base64.decode(data, Base64.DEFAULT);
@@ -162,7 +166,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                             }
-                            StringBuilder sb = new StringBuilder();
                             for (Map.Entry<String, Pulse> entry : pulseList.entrySet()) {
                                 sb.append("Address: ")
                                         .append(entry.getKey())
@@ -170,21 +173,22 @@ public class MainActivity extends AppCompatActivity {
                                         .append(entry.getValue().toString())
                                         .append(System.getProperty("line.separator"));
                             }
-                            final String output = sb.toString();
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
+                        }
+                        final String output = (response != null && response.body() != null)?sb.toString():"Null value";
+                        MainActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
 
-                                    mTextViewResult.setText(output);
-                                }
-                            });
+                                mTextViewResult.setText(output);
+                            }
+                        });
 //                        }
                     }
                 });
             }
         });
-        //Add Test Lab
-        mButtonAddLabTest.setOnClickListener(new View.OnClickListener() {
+        //Add Pulse
+        mButtonAddPulse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 OkHttpClient client = new OkHttpClient();
@@ -213,9 +217,11 @@ public class MainActivity extends AppCompatActivity {
                     client.newCall(request).enqueue(new Callback() {
 
                         @Override
-                        public void onFailure(Call call, IOException e) {
-                            e.printStackTrace();
-                            final String myError = e.getMessage();
+                        public void onFailure(@Nullable Call call, @Nullable IOException e) {
+                            if (e != null) {
+                                e.printStackTrace();
+                            }
+                            final String myError = (e != null)?e.getMessage():"Null value";
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -226,25 +232,30 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-//                            if (response.isSuccessful()) {
-                                final String myResponse = response.body().string();
-                                Log.d("ADD_PULSE", myResponse);
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        mTextViewResult.setText(myResponse);
-                                        String msg = "Pulse: " + n + ", Timestamp: " + ts.getTime() + " sent";
-                                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-//                            }
+                        public void onResponse(@Nullable Call call, @Nullable Response response) throws IOException {
+                            final String myResponse = (response != null && response.body() != null) ? response.body().string() : "Null value";
+                            Log.d("ADD_PULSE", myResponse);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myResponse);
+                                    String msg = "Pulse: " + n + ", Timestamp: " + ts.getTime() + " sent";
+                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                                }
+                            });
                         }
                     });
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
+            }
+        });
+        mButtonScanQRCode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, ScanQrCodeActivity.class);
+                startActivityForResult(intent, MY_CAMERA_REQUEST_CODE);
             }
         });
 
@@ -272,6 +283,27 @@ public class MainActivity extends AppCompatActivity {
 //            editor.apply();
 //        }
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Check that it is the SecondActivity with an OK result
+        if (requestCode == MY_CAMERA_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+
+                // Get String data from Intent
+                String returnString = data.getStringExtra(QR_CODE_ENTERED_VALUE);
+
+                // Set text view with string
+                //TODO Set doctor public key to text view
+//                TextView textView = (TextView) findViewById(R.id.textView);
+//                textView.setText(returnString);
+                mTextViewResult.setText(returnString);
+                Toast.makeText(MainActivity.this, returnString, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private String getPublicKey(PrivateKey privateKey){
@@ -309,13 +341,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
         MultiDex.install(this);
     }
+
 }

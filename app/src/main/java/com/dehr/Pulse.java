@@ -6,7 +6,7 @@ public class Pulse {
     private int pulse;
     private long timestamp;
 
-    public Pulse(String key, int pulse, long timestamp) {
+    Pulse(String key, int pulse, long timestamp) {
         this.key = key;
         this.pulse = pulse;
         this.timestamp = timestamp;
