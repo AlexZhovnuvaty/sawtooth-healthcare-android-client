@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option java_package = "com.dehr.protobuf";
+option java_outer_classname = "ConsentPayload";
+
+message ConsentTransactionPayload {
+
+    enum PayloadType {
+        TYPE_UNSET = 0;
+        GRANT_ACCESS = 1;
+        REVOKE_ACCESS = 2;
+    }
+
+    PayloadType payload_type = 1;
+
+    ActionOnAccess grant_access = 2;
+    ActionOnAccess revoke_access = 3;
+}
+
+message ActionOnAccess {
+    string doctor_pkey = 1;
+    string patient_pkey = 2;
+}

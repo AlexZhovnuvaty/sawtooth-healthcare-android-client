@@ -1,5 +1,6 @@
 package com.dehr;
 
+import com.dehr.protobuf.ConsentPayload;
 import com.dehr.protobuf.Payload;
 import com.google.protobuf.ByteString;
 
@@ -51,6 +52,69 @@ class DEHRRequestHandler {
                 .build();
     }
 
+    BatchList addPatient(String name, String surname) throws IOException {
+        String publicKey = signer.getPublicKey().hex();
+        Payload.CreatePatient patientPayload = Payload.CreatePatient.newBuilder()
+                .setPublicKey(publicKey)
+                .setName(name)
+                .setSurname(surname).build();
+
+        Payload.TransactionPayload transactionPayload = Payload.TransactionPayload.newBuilder()
+                .setPayloadType(Payload.TransactionPayload.PayloadType.CREATE_PATIENT)
+                .setCreatePatient(patientPayload).build();
+
+        String address = Addressing.makePatientAddress(signer.getPublicKey().hex());
+
+        Transaction addPulseTransaction = makeTransaction(address, address, transactionPayload);
+        Batch batch = makeBatch(Collections.singletonList(addPulseTransaction));
+
+        return BatchList.newBuilder()
+                .addBatches(batch)
+                .build();
+    }
+
+    BatchList grantAccess(String doctorPKey) throws IOException {
+        String publicKey = signer.getPublicKey().hex();
+        ConsentPayload.ActionOnAccess grantAccessPayload = ConsentPayload.ActionOnAccess.newBuilder()
+                .setDoctorPkey(doctorPKey)
+                .setPatientPkey(publicKey)
+                .build();
+
+        ConsentPayload.ConsentTransactionPayload transactionPayload = ConsentPayload.ConsentTransactionPayload.newBuilder()
+                .setPayloadType(ConsentPayload.ConsentTransactionPayload.PayloadType.GRANT_ACCESS)
+                .setGrantAccess(grantAccessPayload).build();
+
+        String address = Addressing.makeConsentAddress(doctorPKey, signer.getPublicKey().hex());
+
+        Transaction grantAccessTransaction = makeConsentTransaction(address, address, transactionPayload);
+        Batch batch = makeBatch(Collections.singletonList(grantAccessTransaction));
+
+        return BatchList.newBuilder()
+                .addBatches(batch)
+                .build();
+    }
+
+    BatchList revokeAccess(String doctorPKey) throws IOException {
+        String publicKey = signer.getPublicKey().hex();
+        ConsentPayload.ActionOnAccess revokeAccessPayload = ConsentPayload.ActionOnAccess.newBuilder()
+                .setDoctorPkey(doctorPKey)
+                .setPatientPkey(publicKey)
+                .build();
+
+        ConsentPayload.ConsentTransactionPayload transactionPayload = ConsentPayload.ConsentTransactionPayload.newBuilder()
+                .setPayloadType(ConsentPayload.ConsentTransactionPayload.PayloadType.REVOKE_ACCESS)
+                .setRevokeAccess(revokeAccessPayload).build();
+
+        String address = Addressing.makeConsentAddress(doctorPKey, signer.getPublicKey().hex());
+
+        Transaction revokeAccessTransaction = makeConsentTransaction(address, address, transactionPayload);
+        Batch batch = makeBatch(Collections.singletonList(revokeAccessTransaction));
+
+        return BatchList.newBuilder()
+                .addBatches(batch)
+                .build();
+    }
+
     private Transaction makeTransaction(String input, String output, Payload.TransactionPayload transactionPayload) throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -61,6 +125,32 @@ class DEHRRequestHandler {
                 .setSignerPublicKey(signer.getPublicKey().hex())
                 .setFamilyName(Addressing.TP_FAMILYNAME)
                 .setFamilyVersion(Addressing.TP_VERSION)
+                .addInputs(input)
+                .addOutputs(output)
+                .setPayloadSha512(Addressing.hash(serializedPayload))
+                .setBatcherPublicKey(signer.getPublicKey().hex())
+                .setNonce(UUID.randomUUID().toString())
+                .build();
+
+        String signature = signer.sign(header.toByteArray());
+
+        return Transaction.newBuilder()
+                .setHeader(header.toByteString())
+                .setPayload(ByteString.copyFrom(serializedPayload, "UTF-8"))
+                .setHeaderSignature(signature)
+                .build();
+    }
+
+    private Transaction makeConsentTransaction(String input, String output, ConsentPayload.ConsentTransactionPayload transactionPayload) throws IOException {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        transactionPayload.writeTo(baos);
+        String serializedPayload = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+
+        TransactionHeader header = TransactionHeader.newBuilder()
+                .setSignerPublicKey(signer.getPublicKey().hex())
+                .setFamilyName(Addressing.TP_CONSENT_FAMILYNAME)
+                .setFamilyVersion(Addressing.TP_CONSENT_VERSION)
                 .addInputs(input)
                 .addOutputs(output)
                 .setPayloadSha512(Addressing.hash(serializedPayload))
@@ -95,5 +185,4 @@ class DEHRRequestHandler {
                 .setHeaderSignature(batchSignature)
                 .build();
     }
-
 }

@@ -34,6 +34,13 @@ class Addressing{
     static String PULSE_ENTITY_CODE = "07";
     static String TP_PREFFIX_HEX6 = hash(TP_FAMILYNAME).substring(0, 6);
 
+    static String TP_CONSENT_FAMILYNAME = "consent";
+    static String TP_CONSENT_VERSION = "1.0";
+
+    static String CONSENT_ENTITY_NAME = "consent";
+    static String CONSENT_ENTITY_CODE = "01";
+    static String TP_CONSENT_PREFFIX_HEX6 = hash(TP_CONSENT_FAMILYNAME).substring(0, 6);
+
     static String hash(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-512");
@@ -89,4 +96,21 @@ class Addressing{
         return TP_PREFFIX_HEX6 + PULSE_ENTITY_CODE +
                 hash(PULSE_ENTITY_NAME).substring(0, 6);
     }
+
+    static String makePatientAddress(String patientPKey){
+        return TP_PREFFIX_HEX6 + PATIENT_ENTITY_CODE +
+                hash(PATIENT_ENTITY_NAME).substring(0, 6) +
+                hash(patientPKey).substring(0, 56);
+    }
+
+    static String makePatientListAddress(){
+        return TP_PREFFIX_HEX6 + PATIENT_ENTITY_CODE + hash(PATIENT_ENTITY_NAME).substring(0, 6);
+    }
+
+    static String makeConsentAddress(String doctorPKey, String patientPKey){
+        return TP_CONSENT_PREFFIX_HEX6 + CONSENT_ENTITY_CODE +
+                hash(DOCTOR_ENTITY_NAME).substring(0, 6) + hash(doctorPKey).substring(0, 25) +
+                hash(PATIENT_ENTITY_NAME).substring(0, 6) + hash(patientPKey).substring(0, 25);
+    }
+
 }

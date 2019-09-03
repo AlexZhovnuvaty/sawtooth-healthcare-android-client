@@ -30,29 +30,92 @@
             android:maxLines="1"
             android:lines="1"/>
 
-        <Button
-            android:id="@+id/btn_set_rest_api"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/set_url" />
+            android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btn_add_pulse"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/add_pulse" />
+            <Button
+                android:id="@+id/btn_set_rest_api"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/set_url"
+                tools:ignore="ButtonStyle" />
 
-        <Button
-            android:id="@+id/btn_get_items"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/get_items" />
+            <Button
+                android:id="@+id/btn_add_pulse"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/add_pulse"
+                tools:ignore="ButtonStyle" />
 
-        <Button
-            android:id="@+id/btn_scan_qr_code"
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/scan_qr_code" />
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/btn_get_items"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/get_items"
+                tools:ignore="ButtonStyle" />
+            <Button
+                android:id="@+id/btn_scan_qr_code"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/scan_qr_code"
+                tools:ignore="ButtonStyle" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_grant_access"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/grant_access"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:id="@+id/btn_revoke_access"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/revoke_access"
+                tools:ignore="ButtonStyle" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_register_patient"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="@string/register_patient"
+                tools:ignore="ButtonStyle" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_doctor_pkey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="vertical"
+            android:text="@string/doctor_pkey" />
 
         <TextView
             android:id="@+id/text_view_result"
@@ -60,8 +123,6 @@
             android:layout_height="match_parent"
             android:scrollbars="vertical"
             android:text="@string/click_get_items_button" />
-
     </LinearLayout>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

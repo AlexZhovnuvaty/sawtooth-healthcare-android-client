@@ -50,11 +50,13 @@ import android.util.Base64;
 public class MainActivity extends AppCompatActivity {
 //    private TextView mTextMessage;
     private TextView  mTextViewResult;
-
+    private TextView mTextDoctorPKey;
     private TextInputEditText mEditTextURL;
-
     public static final String DEHR_PREFS_NAME = "dEHRPrefsFile";
     public static final String PARAM_NAME_URL = "RestApiURL";
+    public static final String PARAM_NAME_PATIENT_PKEY = "PatientPKey";
+    public static final String PARAM_NAME_DOCTOR_PKEY = "DoctorPKey";
+//    public static final String PARAM_NAME_GRANT_ACCESS = "DoctorAccessGranted";
     public static final String DEHR_PRIVATE_KEY = "private_key";
     public static final String DEHR_PUBLIC_KEY = "public_key";
     public static final String DEHR_REST_API_DEFAULT = "http://localhost:8040";
@@ -88,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
         init();
 //        BottomNavigationView navView = findViewById(R.id.nav_view);
 //        mTextMessage = findViewById(R.id.message);
+        Button mButtonRevokeAccess = findViewById(R.id.btn_revoke_access);
+        Button mButtonGrantAccess = findViewById(R.id.btn_grant_access);
         mTextViewResult = findViewById(R.id.text_view_result);
         mTextViewResult.setMovementMethod(new ScrollingMovementMethod());
         Button mButtonSetURL = findViewById(R.id.btn_set_rest_api);
@@ -96,10 +100,13 @@ public class MainActivity extends AppCompatActivity {
 //        Button mButtonScanQRCode = findViewById(R.id.btn_scan_qr_code);
         mEditTextURL = findViewById(R.id.edit_rest_api_url);
         Button mButtonScanQRCode = findViewById(R.id.btn_scan_qr_code);
+        Button mButtonRegisterPatient = findViewById(R.id.btn_register_patient);
         //Check button states
         SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
         String restoredText = prefs.getString(PARAM_NAME_URL, DEHR_REST_API_DEFAULT);
         mEditTextURL.setText(restoredText);
+        mTextDoctorPKey = findViewById(R.id.text_doctor_pkey);
+        initDoctorPKeyValue();
         //Save URL
         mButtonSetURL.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -258,12 +265,221 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, MY_CAMERA_REQUEST_CODE);
             }
         });
+        //Register patient
+        mButtonRegisterPatient.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+//                String pKey = prefs.getString(PARAM_NAME_PATIENT_PKEY, null);
+//                if(pKey != null){
+//                    Toast.makeText(MainActivity.this, "Patient already registered", Toast.LENGTH_SHORT).show();
+//                    return;
+//                }
 
+                OkHttpClient client = new OkHttpClient();
+
+                DEHRRequestHandler requestHandler = new DEHRRequestHandler(getPrivateKey());
+                try {
+                    Date date= new Date();
+                    long time = date.getTime();
+                    final Timestamp ts = new Timestamp(time);
+//                    Random rand = new Random();
+//                    final int n = rand.nextInt(50);
+                    final String name = "PatientName";
+                    final String surname = "PatientSurname";
+                    byte[] patientBody = requestHandler.addPatient(name + ts.getTime(), surname + ts.getTime()).toByteArray();
+                    RequestBody body = RequestBody.create(MediaType.parse("application/octet-stream"), patientBody);
+
+                    SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+                    String url = prefs.getString(PARAM_NAME_URL, DEHR_REST_API_DEFAULT);
+                    Log.d("ADD_PATIENT", url);
+                    String urlSuff = "/batches";
+                    Request request = new Request.Builder()
+                            .url(url + urlSuff)
+                            .post(body)
+                            .build();
+
+                    client.newCall(request).enqueue(new Callback() {
+
+                        @Override
+                        public void onFailure(@Nullable Call call, @Nullable IOException e) {
+                            if (e != null) {
+                                e.printStackTrace();
+                            }
+                            final String myError = (e != null)?e.getMessage():"Null value";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myError);
+                                    Toast.makeText(MainActivity.this, myError, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onResponse(@Nullable Call call, @Nullable Response response) throws IOException {
+                            final String myResponse = (response != null && response.body() != null) ? response.body().string() : "Null value";
+                            Log.d("ADD_PATIENT", myResponse);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    SharedPreferences.Editor editor = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE).edit();
+                                    String publicKey = getPublicKey(getPrivateKey());
+                                    editor.putString(PARAM_NAME_PATIENT_PKEY, publicKey);
+                                    editor.apply();
+                                    Log.d("ADD_PATIENT", publicKey);
+                                    mTextViewResult.setText(myResponse);
+                                    String msg = "Patient registration: Name->" + name + ", Surname->" + surname + " sent";
+                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+        //Grant access
+        mButtonGrantAccess.setOnClickListener(new View.OnClickListener() {
+
+            private void grantAccess(String doctorPKey) {
+                OkHttpClient client = new OkHttpClient();
+
+                DEHRRequestHandler requestHandler = new DEHRRequestHandler(getPrivateKey());
+                try {
+                    byte[] grantAccessBody = requestHandler.grantAccess(doctorPKey).toByteArray();
+                    RequestBody body = RequestBody.create(MediaType.parse("application/octet-stream"), grantAccessBody);
+
+                    SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+                    String url = prefs.getString(PARAM_NAME_URL, DEHR_REST_API_DEFAULT);
+                    Log.d("GRANT_ACCESS", url);
+                    String urlSuff = "/batches";
+                    Request request = new Request.Builder()
+                            .url(url + urlSuff)
+                            .post(body)
+                            .build();
+
+                    client.newCall(request).enqueue(new Callback() {
+
+                        @Override
+                        public void onFailure(@Nullable Call call, @Nullable IOException e) {
+                            if (e != null) {
+                                e.printStackTrace();
+                            }
+                            final String myError = (e != null)?e.getMessage():"Null value";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myError);
+                                    Toast.makeText(MainActivity.this, myError, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onResponse(@Nullable Call call, @Nullable Response response) throws IOException {
+                            final String myResponse = (response != null && response.body() != null) ? response.body().string() : "Null value";
+                            Log.d("GRANT_ACCESS", myResponse);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myResponse);
+                                    String msg = "Grant access sent";
+                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onClick(View view) {
+                SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+                String doctorPKey = prefs.getString(PARAM_NAME_DOCTOR_PKEY, null);
+                if(doctorPKey != null){
+                    grantAccess(doctorPKey);
+                } else {
+                    Toast.makeText(MainActivity.this, "Doctor pkey not specified - scan QA code first", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        //Revoke access
+        mButtonRevokeAccess.setOnClickListener(new View.OnClickListener() {
+
+            private void revokeAccess(String doctorPkey) {
+                OkHttpClient client = new OkHttpClient();
+
+                DEHRRequestHandler requestHandler = new DEHRRequestHandler(getPrivateKey());
+                try {
+                    byte[] revokeAccessBody = requestHandler.revokeAccess(doctorPkey).toByteArray();
+                    RequestBody body = RequestBody.create(MediaType.parse("application/octet-stream"), revokeAccessBody);
+
+                    SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+                    String url = prefs.getString(PARAM_NAME_URL, DEHR_REST_API_DEFAULT);
+                    Log.d("REVOKE_ACCESS", url);
+                    String urlSuff = "/batches";
+                    Request request = new Request.Builder()
+                            .url(url + urlSuff)
+                            .post(body)
+                            .build();
+
+                    client.newCall(request).enqueue(new Callback() {
+
+                        @Override
+                        public void onFailure(@Nullable Call call, @Nullable IOException e) {
+                            if (e != null) {
+                                e.printStackTrace();
+                            }
+                            final String myError = (e != null)?e.getMessage():"Null value";
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myError);
+                                    Toast.makeText(MainActivity.this, myError, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onResponse(@Nullable Call call, @Nullable Response response) throws IOException {
+                            final String myResponse = (response != null && response.body() != null) ? response.body().string() : "Null value";
+                            Log.d("REVOKE_ACCESS", myResponse);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mTextViewResult.setText(myResponse);
+                                    String msg = "Revoke access sent";
+                                    Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onClick(View view) {
+                SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+                String doctorPKey = prefs.getString(PARAM_NAME_DOCTOR_PKEY, null);
+                if(doctorPKey != null){
+                    revokeAccess(doctorPKey);
+                } else {
+                    Toast.makeText(MainActivity.this, "Doctor pkey not specified - scan QA code first", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 //        navView.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
     }
 
     private void init() {
-//        SharedPreferences prefs = getSharedPreferences(DEHR_PRIVATE_KEY, MODE_PRIVATE);
+//        SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
 //        String prKey = prefs.getString(DEHR_PRIVATE_KEY, null);
 //        if(prKey == null){
 //            prKey = generatePrivateKey();
@@ -273,7 +489,7 @@ public class MainActivity extends AppCompatActivity {
 //        }
         getPublicKey(getPrivateKey());
 
-//        prefs = getSharedPreferences(DEHR_PUBLIC_KEY, MODE_PRIVATE);
+//        prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
 //        String pubKey = prefs.getString(DEHR_PUBLIC_KEY, null);
 //        if(pubKey == null){
 //            PrivateKey prKeyObj = Secp256k1PrivateKey.fromHex(prKey);
@@ -295,19 +511,24 @@ public class MainActivity extends AppCompatActivity {
 
                 // Get String data from Intent
                 String returnString = data.getStringExtra(QR_CODE_ENTERED_VALUE);
-
-                // Set text view with string
-                //TODO Set doctor public key to text view
-//                TextView textView = (TextView) findViewById(R.id.textView);
-//                textView.setText(returnString);
-                mTextViewResult.setText(returnString);
+                Log.d("SCAN_QR_CODE", returnString != null? returnString:"Null value");
+                SharedPreferences.Editor editor = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE).edit();
+                editor.putString(PARAM_NAME_DOCTOR_PKEY, returnString);
+                editor.apply();
+                initDoctorPKeyValue();
                 Toast.makeText(MainActivity.this, returnString, Toast.LENGTH_SHORT).show();
             }
         }
     }
 
+    void initDoctorPKeyValue(){
+        SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
+        String pubKey = prefs.getString(PARAM_NAME_DOCTOR_PKEY, null);
+        mTextDoctorPKey.setText(pubKey == null?"":pubKey);
+    }
+
     private String getPublicKey(PrivateKey privateKey){
-        SharedPreferences prefs = getSharedPreferences(DEHR_PUBLIC_KEY, MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
         String pubKey = prefs.getString(DEHR_PUBLIC_KEY, null);
         if(pubKey == null){
             pubKey = generatePublicKey(privateKey);
@@ -319,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Secp256k1PrivateKey getPrivateKey(){
-        SharedPreferences prefs = getSharedPreferences(DEHR_PRIVATE_KEY, MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
         String prKey = prefs.getString(DEHR_PRIVATE_KEY, null);
         if(prKey == null){
             prKey = generatePrivateKey();

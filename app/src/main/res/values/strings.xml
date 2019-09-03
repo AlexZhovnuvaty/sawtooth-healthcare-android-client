@@ -11,4 +11,8 @@
     <string name="add_pulse">Add Pulse</string>
     <string name="set_url">Set URL</string>
     <string name="http_localhost_8040">http://localhost:8040</string>
+    <string name="register_patient">Register patient</string>
+    <string name="grant_access">Grant Access</string>
+    <string name="revoke_access">Revoke Access</string>
+    <string name="doctor_pkey">doctor_pkey</string>
 </resources>
