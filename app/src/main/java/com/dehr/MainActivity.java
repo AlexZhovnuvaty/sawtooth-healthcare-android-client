@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import com.dehr.protobuf.Payload;
-//import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -28,8 +27,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -166,9 +163,9 @@ public class MainActivity extends AppCompatActivity {
                                 Payload.AddPulse cl;
                                 try {
                                     cl = Payload.AddPulse.parseFrom(decodedBytes);
-                                    pulseList.put(address, new Pulse(cl.getPublicKey(), Integer.parseInt(cl.getPulse()), Long.parseLong(cl.getTimestamp())));
+                                    pulseList.put(address, new Pulse(cl.getId(), cl.getClientPkey(), Integer.parseInt(cl.getPulse()), Long.parseLong(cl.getTimestamp())));
                                 } catch (InvalidProtocolBufferException e) {
-                                    pulseList.put(address, new Pulse("-1", -1, -1));
+                                    pulseList.put(address, new Pulse("-1", "-1", -1, -1));
                                     e.printStackTrace();
                                 }
 
@@ -204,12 +201,13 @@ public class MainActivity extends AppCompatActivity {
 
                 DEHRRequestHandler requestHandler = new DEHRRequestHandler(getPrivateKey());
                 try {
-                    Date date= new Date();
-                    long time = date.getTime();
-                    final Timestamp ts = new Timestamp(time);
+//                    Date date= new Date();
+//                    long time = date.getTime();
+//                    final Timestamp ts = new Timestamp(time);
+                    final long ts = Addressing.getCurrentTimestamp();
                     Random rand = new Random();
                     final int n = rand.nextInt(50);
-                    byte[] pulseBody = requestHandler.addPulse(n, ts.getTime()).toByteArray();
+                    byte[] pulseBody = requestHandler.addPulse(String.valueOf(ts), n, ts).toByteArray();
                     RequestBody body = RequestBody.create(MediaType.parse("application/octet-stream"), pulseBody);
 
                     SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
@@ -246,13 +244,13 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     mTextViewResult.setText(myResponse);
-                                    String msg = "Pulse: " + n + ", Timestamp: " + ts.getTime() + " sent";
+                                    String msg = "Pulse: " + n + ", Timestamp: " + ts + " sent";
                                     Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
                                 }
                             });
                         }
                     });
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -280,14 +278,15 @@ public class MainActivity extends AppCompatActivity {
 
                 DEHRRequestHandler requestHandler = new DEHRRequestHandler(getPrivateKey());
                 try {
-                    Date date= new Date();
-                    long time = date.getTime();
-                    final Timestamp ts = new Timestamp(time);
+//                    Date date= new Date();
+//                    long time = date.getTime();
+//                    final Timestamp ts = new Timestamp(time);
+                    final long ts = Addressing.getCurrentTimestamp();
 //                    Random rand = new Random();
 //                    final int n = rand.nextInt(50);
                     final String name = "PatientName";
                     final String surname = "PatientSurname";
-                    byte[] patientBody = requestHandler.addPatient(name + ts.getTime(), surname + ts.getTime()).toByteArray();
+                    byte[] patientBody = requestHandler.addPatient(name + ts, surname + ts).toByteArray();
                     RequestBody body = RequestBody.create(MediaType.parse("application/octet-stream"), patientBody);
 
                     SharedPreferences prefs = getSharedPreferences(DEHR_PREFS_NAME, MODE_PRIVATE);
@@ -335,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
                     });
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -392,7 +391,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
                     });
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -459,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
                             });
                         }
                     });
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

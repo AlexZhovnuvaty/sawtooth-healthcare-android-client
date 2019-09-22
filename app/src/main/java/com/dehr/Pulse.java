@@ -2,11 +2,13 @@ package com.dehr;
 
 public class Pulse {
 
+    private String id;
     private String key;
     private int pulse;
     private long timestamp;
 
-    Pulse(String key, int pulse, long timestamp) {
+    Pulse(String id, String key, int pulse, long timestamp) {
+        this.id = id;
         this.key = key;
         this.pulse = pulse;
         this.timestamp = timestamp;
@@ -36,10 +38,19 @@ public class Pulse {
         this.timestamp = timestamp;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
         return "Pulse{" +
-                "key='" + key + '\'' +
+                "id='" + id + '\'' +
+                ", key='" + key + '\'' +
                 ", pulse=" + pulse +
                 ", timestamp=" + timestamp +
                 '}';
