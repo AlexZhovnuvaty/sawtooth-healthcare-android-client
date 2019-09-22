@@ -77,6 +77,8 @@ class DEHRRequestHandler {
         permissions.add(ConsentPayload.Permission.newBuilder().setType(ConsentPayload.Permission.PermissionType.WRITE_LAB_TEST).build());
         permissions.add(ConsentPayload.Permission.newBuilder().setType(ConsentPayload.Permission.PermissionType.WRITE_PULSE).build());
         permissions.add(ConsentPayload.Permission.newBuilder().setType(ConsentPayload.Permission.PermissionType.WRITE_CLAIM).build());
+        permissions.add(ConsentPayload.Permission.newBuilder().setType(ConsentPayload.Permission.PermissionType.REVOKE_ACCESS).build());
+        permissions.add(ConsentPayload.Permission.newBuilder().setType(ConsentPayload.Permission.PermissionType.GRANT_ACCESS).build());
 
         ConsentPayload.Client client = ConsentPayload.Client.newBuilder()
                 .addAllPermissions(permissions)
